@@ -1,0 +1,631 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>リフォーム顧客フォルダ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+/* Layout: 上から「期間と集計」→「理由の内訳」→「集客経路・月別」→「お客様一覧」。藍色を基調にした事務机の台帳 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --line: #dde1e8;
+  --fg: #1d2330;
+  --muted: #5d6676;
+  --accent: #2b4c7e;
+  --accent-soft: #e3eaf5;
+  --win: #2f7d4f;
+  --win-soft: #e2f1e7;
+  --loss: #b4483b;
+  --loss-soft: #f7e4e1;
+  --wait: #a06b12;
+  --wait-soft: #f6ecd9;
+  --sample: #7a5aa8;
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-display: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181f; --surface: #1c222c; --line: #2f3744; --fg: #e8ebf0; --muted: #9aa3b2;
+    --accent: #8fb0e3; --accent-soft: #24324a; --win: #6cc28f; --win-soft: #1d3327;
+    --loss: #e98a7d; --loss-soft: #3a2421; --wait: #e0b25e; --wait-soft: #392f1c; --sample: #b9a0e0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181f; --surface: #1c222c; --line: #2f3744; --fg: #e8ebf0; --muted: #9aa3b2;
+  --accent: #8fb0e3; --accent-soft: #24324a; --win: #6cc28f; --win-soft: #1d3327;
+  --loss: #e98a7d; --loss-soft: #3a2421; --wait: #e0b25e; --wait-soft: #392f1c; --sample: #b9a0e0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1160px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; margin: 0; letter-spacing: .04em; text-wrap: balance; }
+h2 { font-size: 1.02rem; margin: 0; }
+.sub { color: var(--muted); font-size: .85rem; margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, input, textarea {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 10px; min-width: 0;
+}
+textarea { width: 100%; min-height: 64px; resize: vertical; }
+button {
+  font: inherit; cursor: pointer; border-radius: 6px; padding: 8px 14px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 700; }
+button.danger { color: var(--loss); border-color: var(--loss); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.notice { padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); font-size: .9rem; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.notice.sample { background: var(--surface); border: 1px dashed var(--sample); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.kpi .label { font-size: .78rem; color: var(--muted); letter-spacing: .05em; }
+.kpi .value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+.kpi .value small { font-size: .85rem; font-weight: 400; margin-left: 2px; color: var(--muted); }
+.kpi .note { font-size: .75rem; color: var(--muted); }
+.kpi.hero .value { color: var(--accent); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+.rank { display: grid; gap: 8px; }
+.rank-row { display: grid; grid-template-columns: minmax(0, 11em) 1fr 3.2em; gap: 10px; align-items: center; font-size: .88rem; }
+.rank-row .name { overflow-wrap: anywhere; }
+.rank-track { height: 14px; background: var(--bg); border-radius: 0 4px 4px 0; }
+.rank-bar { height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.rank-bar.loss { background: var(--loss); }
+.rank-bar.win { background: var(--win); }
+.rank-row .cnt { text-align: right; }
+.rank-row:hover .name { font-weight: 700; }
+.empty { color: var(--muted); font-size: .88rem; padding: 12px 0; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: .76rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+td.r, th.r { text-align: right; }
+.ratebar { display: inline-block; height: 8px; background: var(--accent); border-radius: 0 3px 3px 0; vertical-align: middle; margin-right: 6px; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover { background: var(--accent-soft); }
+td.reasons { white-space: normal; min-width: 14em; color: var(--muted); font-size: .8rem; }
+
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+.pill.成約 { background: var(--win-soft); color: var(--win); }
+.pill.失注 { background: var(--loss-soft); color: var(--loss); }
+.pill.商談中 { background: var(--accent-soft); color: var(--accent); }
+.pill.保留 { background: var(--wait-soft); color: var(--wait); }
+.tag-sample { font-size: .7rem; color: var(--sample); border: 1px solid var(--sample); border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+
+#monthChart svg { width: 100%; height: auto; display: block; }
+#monthChart .bar { fill: var(--accent); }
+#monthChart .bar:hover { opacity: .75; }
+#monthChart [data-month] { cursor: pointer; }
+#monthChart .bar.dim { opacity: .3; }
+#monthChart .axis.selm { fill: var(--fg); font-weight: 700; }
+#monthChart .axis { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+#monthChart .grid { stroke: var(--line); stroke-width: 1; }
+#monthChart .vlabel { fill: var(--fg); font-size: 11px; font-family: var(--font-body); }
+
+.list-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.list-controls input { flex: 1 1 180px; }
+
+dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; background: var(--surface); color: var(--fg); width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog::backdrop { background: rgba(10, 14, 22, .45); }
+form.edit { display: grid; gap: 14px; padding: 20px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+fieldset .fields { margin-top: 4px; }
+td.kana { display: block; font-size: .72rem; color: var(--muted); }
+.field label, fieldset legend { font-size: .8rem; color: var(--muted); font-weight: 700; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0; }
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px 12px; }
+.checks label { display: flex; gap: 6px; align-items: center; font-size: .88rem; color: var(--fg); font-weight: 400; }
+.status-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-pick label { display: flex; gap: 4px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: .9rem; color: var(--fg); font-weight: 400; cursor: pointer; }
+.form-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.form-actions .right { display: flex; gap: 8px; margin-left: auto; }
+.err { color: var(--loss); font-size: .85rem; margin: 0; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-size: .9rem; }
+@media (prefers-reduced-motion: no-preference) { .rank-bar, .ratebar { transition: width .3s ease; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>リフォーム顧客フォルダ</h1>
+      <p class="sub">リフォームの反響（来店・問い合わせ）から成約・失注までを記録して、理由と成約率を見える化します</p>
+    </div>
+    <div class="controls">
+      <label for="period" class="sub">集計期間（受付日）</label>
+      <select id="period"></select>
+      <select id="month" aria-label="月を選ぶ"></select>
+      <button class="primary" id="addBtn" type="button">＋ お客様を登録</button>
+    </div>
+  </header>
+
+  <div id="statusNote" class="notice">データを読み込んでいます…</div>
+  <div id="sampleNote" class="notice sample" hidden>
+    <span>「見本」と付いた行は使い方を見るための見本データです。実際のお客様を登録したら消してください。</span>
+    <button type="button" id="clearSample" class="danger">見本データを消す</button>
+  </div>
+
+  <p class="sub" id="periodLabel"></p>
+  <section class="kpis" aria-label="集計">
+    <div class="kpi"><span class="label">集客数</span><span class="value num" id="kTotal">–</span><span class="note">期間内に受付したお客様</span></div>
+    <div class="kpi"><span class="label">成約</span><span class="value num" id="kWin">–</span><span class="note" id="kAmount">契約金額 –</span></div>
+    <div class="kpi"><span class="label">失注</span><span class="value num" id="kLoss">–</span><span class="note">他社決定・延期など</span></div>
+    <div class="kpi"><span class="label">商談中・保留</span><span class="value num" id="kOpen">–</span><span class="note">まだ結果が出ていない</span></div>
+    <div class="kpi hero"><span class="label">成約率（決着ベース）</span><span class="value num" id="kRate">–</span><span class="note">成約 ÷（成約＋失注）</span></div>
+    <div class="kpi"><span class="label">集客からの成約率</span><span class="value num" id="kRate2">–</span><span class="note">成約 ÷ 集客数</span></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel">
+      <div class="panel-head"><h2>失注理由</h2><span class="sub" id="lossN"></span></div>
+      <div class="rank" id="lossRank"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>成約理由（選ばれた決め手）</h2><span class="sub" id="winN"></span></div>
+      <div class="rank" id="winRank"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <div class="panel-head"><h2>集客経路別の成約率</h2><span class="sub">どこから来たお客様が決まりやすいか</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>集客経路</th><th class="r">集客</th><th class="r">成約</th><th class="r">失注</th><th>成約率</th></tr></thead>
+        <tbody id="sourceBody"></tbody>
+      </table></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>月別の集客数</h2><span class="sub" id="monthNote"></span></div>
+      <div id="monthChart"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head"><h2>工事内容別の成約率</h2><span class="sub">複数選んだお客様はそれぞれの工事内容に数えるため、件数の合計は集客数より多くなります</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>工事内容</th><th class="r">件数</th><th class="r">成約</th><th class="r">失注</th><th>成約率</th><th class="r">契約金額（参考）</th></tr></thead>
+      <tbody id="kindBody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>お客様一覧</h2><span class="sub">行をクリックすると編集できます</span></div>
+    <div class="list-controls">
+      <button class="primary" id="addBtn2" type="button">＋ 新しいお客様を登録</button>
+      <input id="search" type="search" placeholder="名前・電話・工事内容・担当・メモで検索">
+      <select id="statusFilter">
+        <option value="">すべての状況</option>
+        <option>商談中</option><option>保留</option><option>成約</option><option>失注</option>
+      </select>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>受付日</th><th>お名前</th><th>電話番号</th><th>集客経路</th><th>工事内容</th><th>担当</th><th>状況</th><th class="r">契約金額</th><th>理由・メモ</th></tr></thead>
+      <tbody id="listBody"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<dialog id="dlg">
+  <form class="edit" id="editForm">
+    <h2 id="dlgTitle">お客様を登録</h2>
+    <fieldset>
+      <legend>お客様の情報</legend>
+      <div class="fields">
+        <div class="field"><label for="fName">お名前（必須）</label><input id="fName" required placeholder="例：山田 太郎"></div>
+        <div class="field"><label for="fKana">ふりがな</label><input id="fKana" placeholder="例：やまだ たろう"></div>
+        <div class="field"><label for="fTel">電話番号</label><input id="fTel" type="tel" inputmode="tel" placeholder="例：090-1234-5678"></div>
+        <div class="field"><label for="fMail">メールアドレス</label><input id="fMail" type="email" placeholder="例：yamada@example.jp"></div>
+        <div class="field wide"><label for="fAddr">現住所</label><input id="fAddr" placeholder="例：〇〇市△△町1-2-3"></div>
+        <div class="field"><label for="fFamily">家族構成</label><input id="fFamily" placeholder="例：夫婦＋子2人（5歳・2歳）"></div>
+        <div class="field"><label for="fBudget">ご予算（万円）</label><input id="fBudget" type="number" min="0" step="1" inputmode="numeric" placeholder="例：300"></div>
+        <div class="field"><label for="fHousing">住まいの種類</label><select id="fHousing"></select></div>
+        <div class="field"><label for="fAge">築年数（年）</label><input id="fAge" type="number" min="0" step="1" inputmode="numeric" placeholder="例：25"></div>
+        <div class="field wide"><label for="fPlace">工事する場所・ご要望</label><input id="fPlace" placeholder="例：浴室をユニットバスに交換、手すりを付けたい"></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>商談の情報</legend>
+      <div class="fields">
+        <div class="field"><label for="fDate">受付日（初回来場・問い合わせ）（必須）</label><input id="fDate" type="date" required></div>
+        <div class="field"><label for="fSource">集客経路</label><select id="fSource"></select></div>
+        <fieldset class="field wide"><legend>工事内容（いくつでも）</legend><div class="checks" id="kindChecks"></div></fieldset>
+        <div class="field"><label for="fStaff">担当者</label><input id="fStaff" list="staffList" placeholder="例：佐藤"><datalist id="staffList"></datalist></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>状況</legend>
+      <div class="status-pick" id="statusPick"></div>
+    </fieldset>
+    <div class="fields" id="closeFields" hidden>
+      <div class="field"><label for="fClosed">成約日・失注日</label><input id="fClosed" type="date"></div>
+      <div class="field" id="amountField"><label for="fAmount">契約金額（万円）</label><input id="fAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="例：250"></div>
+    </div>
+    <fieldset id="reasonBox" hidden>
+      <legend id="reasonLegend">理由（いくつでも）</legend>
+      <div class="checks" id="reasonChecks"></div>
+    </fieldset>
+    <div class="field"><label for="fNote">メモ（次の行動、現地調査日、競合先の名前など）</label><textarea id="fNote"></textarea></div>
+    <p class="err" id="formErr" hidden></p>
+    <div class="form-actions">
+      <button type="button" class="danger" id="delBtn" hidden>削除</button>
+      <div class="right">
+        <button type="button" id="cancelBtn">閉じる</button>
+        <button type="submit" class="primary" id="saveBtn">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SOURCES = ["リフォーム相談会・イベント", "ショールーム・事務所来店", "ホームページ", "Instagram・SNS", "リフォームサイト（ホームプロ等）", "紹介", "OB客（リピート）", "点検・訪問から", "チラシ・DM", "看板・通りがかり", "その他"];
+const KINDS = ["水回り（キッチン・浴室・トイレ・洗面）", "外壁・屋根", "内装（床・壁紙・建具）", "間取り変更・リノベーション", "耐震・断熱・窓", "増築・減築", "バリアフリー・介護", "外構・エクステリア", "修繕・小工事", "その他"];
+const STATUSES = ["商談中", "保留", "成約", "失注"];
+const HOUSING = ["戸建て", "マンション", "アパート・店舗", "その他"];
+const WIN_REASONS = ["担当者の対応・人柄", "現地調査・提案が丁寧", "見積がわかりやすく納得できた", "価格", "工事の早さ・日程の融通", "地元の実績・信頼", "紹介・知り合いだから", "前回の工事に満足（OB）", "補助金・減税の提案", "アフター・保証", "その他"];
+const LOSS_REASONS = ["価格が合わない（他社が安い）", "リフォーム専門店・量販店に決定", "他の工務店・地元業者に決定", "メーカー・管理会社の紹介業者に決定", "予算が足りない", "工事の延期・中止", "相見積もりの比較だけだった", "提案内容が合わない", "工期・時期が合わない", "連絡が取れなくなった", "その他"];
+
+let db = null, canWrite = true, customers = [], editingId = null, readOnlyNoticeShown = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = n => n.toLocaleString("ja-JP");
+const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : null;
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => ymd(new Date());
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => { t.hidden = true; }, 2400);
+}
+
+/* ---------- 期間 ---------- */
+/* 期は10月始まり・9月締め。40期 = 2026年10月〜2027年9月 */
+const termOf = ymdStr => { const y = Number(ymdStr.slice(0, 4)), m = Number(ymdStr.slice(5, 7)); return m >= 10 ? y - 1986 : y - 1987; };
+const termStartYear = t => t + 1986;
+function buildPeriodOptions() {
+  const sel = $("period"), keep = sel.value;
+  const thisTerm = termOf(today());
+  const terms = new Set([thisTerm]);
+  customers.forEach(c => { if (c.date) terms.add(termOf(c.date)); });
+  const opts = [];
+  [...terms].sort((a, b) => b - a).forEach(t => opts.push(["t" + t, `${t}期（${termStartYear(t)}年10月〜${termStartYear(t) + 1}年9月）`]));
+  opts.push(["last12", "直近12か月"], ["all", "全期間"]);
+  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  sel.value = opts.some(o => o[0] === keep) ? keep : "t" + thisTerm;
+  buildMonthOptions();
+}
+/* 期を選んでいるときだけ、その期の10月〜9月から1か月を選べる */
+function buildMonthOptions() {
+  const sel = $("month"), keep = sel.value, v = $("period").value;
+  const opts = [["", "通期（12か月）"]];
+  if (v.startsWith("t")) termMonths(Number(v.slice(1))).forEach(m => opts.push([m, `${m.slice(0, 4)}年${Number(m.slice(5))}月`]));
+  sel.innerHTML = opts.map(([val, l]) => `<option value="${val}">${l}</option>`).join("");
+  sel.value = opts.some(o => o[0] === keep) ? keep : "";
+  sel.hidden = !v.startsWith("t");
+}
+function termMonths(t) {
+  const y = termStartYear(t), list = [];
+  for (let i = 0; i < 12; i++) { const m = (9 + i) % 12 + 1; list.push(`${m >= 10 ? y : y + 1}-${String(m).padStart(2, "0")}`); }
+  return list;
+}
+function periodRange() {
+  const v = $("period").value;
+  if (v === "all") return null;
+  if (v === "last12") {
+    const d = new Date(); d.setMonth(d.getMonth() - 11, 1);
+    return [ymd(d).slice(0, 7) + "-01", "9999-12-31"];
+  }
+  const mo = $("month").value;
+  if (mo) return [mo + "-01", mo + "-31"];
+  const y = termStartYear(Number(v.slice(1))); return [y + "-10-01", (y + 1) + "-09-30"];
+}
+function inPeriod(c) {
+  const r = periodRange(); if (!r) return true;
+  return c.date >= r[0] && c.date <= r[1];
+}
+
+/* ---------- 集計の描画 ---------- */
+function render() {
+  const rows = customers.filter(inPeriod);
+  const win = rows.filter(c => c.status === "成約"), loss = rows.filter(c => c.status === "失注");
+  const open = rows.length - win.length - loss.length;
+  $("kTotal").innerHTML = `${fmt(rows.length)}<small>件</small>`;
+  $("kWin").innerHTML = `${fmt(win.length)}<small>件</small>`;
+  $("kLoss").innerHTML = `${fmt(loss.length)}<small>件</small>`;
+  $("kOpen").innerHTML = `${fmt(open)}<small>件</small>`;
+  const amt = win.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  $("kAmount").textContent = win.length ? `契約金額 計 ${fmt(amt)}万円` : "契約金額 –";
+  const r1 = pct(win.length, win.length + loss.length), r2 = pct(win.length, rows.length);
+  $("kRate").innerHTML = r1 === null ? "–" : `${r1}<small>%</small>`;
+  $("kRate2").innerHTML = r2 === null ? "–" : `${r2}<small>%</small>`;
+
+  renderRank("lossRank", "lossN", loss, LOSS_REASONS, "loss");
+  renderRank("winRank", "winN", win, WIN_REASONS, "win");
+  renderSources(rows);
+  renderKinds(rows);
+  renderMonths();
+  const mo = $("month").value;
+  $("periodLabel").textContent = "集計の対象：" + (mo ? `${mo.slice(0, 4)}年${Number(mo.slice(5))}月の単月` : $("period").selectedOptions[0]?.textContent || "");
+  renderList();
+  $("sampleNote").hidden = !customers.some(c => c.sample);
+}
+
+function renderRank(boxId, nId, list, order, cls) {
+  const counts = {};
+  list.forEach(c => (c.reasons || []).forEach(r => { counts[r] = (counts[r] || 0) + 1; }));
+  const items = Object.entries(counts).sort((a, b) => b[1] - a[1] || order.indexOf(a[0]) - order.indexOf(b[0]));
+  $(nId).textContent = list.length ? `${list.length}件のお客様（複数回答）` : "";
+  if (!items.length) {
+    $(boxId).innerHTML = `<p class="empty">${cls === "loss" ? "失注" : "成約"}のお客様に理由をチェックすると、ここに多い順で並びます。</p>`;
+    return;
+  }
+  const max = items[0][1];
+  $(boxId).innerHTML = items.map(([name, n]) => {
+    const share = Math.round(n / list.length * 100);
+    return `<div class="rank-row" title="${esc(name)}：${n}件（${list.length}件中 ${share}%）">
+      <span class="name">${esc(name)}</span>
+      <span class="rank-track"><span class="rank-bar ${cls}" style="display:block;width:${n / max * 100}%"></span></span>
+      <span class="cnt num">${n}件</span></div>`;
+  }).join("");
+}
+
+function renderSources(rows) {
+  const by = {};
+  rows.forEach(c => {
+    const s = c.source || "その他";
+    by[s] = by[s] || { n: 0, w: 0, l: 0 };
+    by[s].n++; if (c.status === "成約") by[s].w++; if (c.status === "失注") by[s].l++;
+  });
+  const items = Object.entries(by).sort((a, b) => b[1].n - a[1].n);
+  if (!items.length) { $("sourceBody").innerHTML = `<tr><td colspan="5" class="empty">期間内のお客様がまだいません。</td></tr>`; return; }
+  $("sourceBody").innerHTML = items.map(([s, v]) => {
+    const r = pct(v.w, v.w + v.l);
+    return `<tr><td>${esc(s)}</td><td class="r num">${v.n}</td><td class="r num">${v.w}</td><td class="r num">${v.l}</td>
+      <td class="num">${r === null ? '<span class="sub">決着なし</span>' : `<span class="ratebar" style="width:${Math.max(r * 0.8, 2)}px"></span>${r}%`}</td></tr>`;
+  }).join("");
+}
+
+function renderKinds(rows) {
+  const by = {};
+  rows.forEach(c => kindsOf(c).forEach(k => {
+    by[k] = by[k] || { n: 0, w: 0, l: 0, amt: 0 };
+    by[k].n++;
+    if (c.status === "成約") { by[k].w++; by[k].amt += Number(c.amount) || 0; }
+    if (c.status === "失注") by[k].l++;
+  }));
+  const items = Object.entries(by).sort((a, b) => b[1].n - a[1].n || KINDS.indexOf(a[0]) - KINDS.indexOf(b[0]));
+  if (!items.length) { $("kindBody").innerHTML = `<tr><td colspan="6" class="empty">工事内容にチェックを入れたお客様がいると、ここに集計が出ます。</td></tr>`; return; }
+  $("kindBody").innerHTML = items.map(([k, v]) => {
+    const r = pct(v.w, v.w + v.l);
+    return `<tr><td>${esc(k)}</td><td class="r num">${v.n}</td><td class="r num">${v.w}</td><td class="r num">${v.l}</td>
+      <td class="num">${r === null ? '<span class="sub">決着なし</span>' : `<span class="ratebar" style="width:${Math.max(r * 0.8, 2)}px"></span>${r}%`}</td>
+      <td class="r num">${v.amt ? fmt(v.amt) + "万円" : ""}</td></tr>`;
+  }).join("");
+}
+
+function renderMonths() {
+  const v = $("period").value;
+  let months = [];
+  const selM = $("month").value;
+  if (v.startsWith("t")) {
+    const t = Number(v.slice(1)), y = termStartYear(t);
+    months = termMonths(t);
+    $("monthNote").textContent = `${t}期（${y}年10月〜${y + 1}年9月）・棒を押すとその月だけを集計`;
+  } else {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 11);
+    for (let i = 0; i < 12; i++) { months.push(ymd(d).slice(0, 7)); d.setMonth(d.getMonth() + 1); }
+    $("monthNote").textContent = "直近12か月";
+  }
+  const counts = months.map(m => customers.filter(c => (c.date || "").startsWith(m)).length);
+  const max = Math.max(...counts, 0);
+  const step = max <= 5 ? 1 : max <= 10 ? 2 : max <= 25 ? 5 : Math.ceil(max / 5 / 5) * 5;
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const W = 560, H = 220, L = 30, R = 8, T = 16, B = 26, pw = W - L - R, ph = H - T - B, bw = pw / 12;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="月別の集客数">`;
+  for (let t = 0; t <= top; t += step) {
+    const y = T + ph - t / top * ph;
+    svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"></line><text class="axis" x="${L - 6}" y="${y + 4}" text-anchor="end">${t}</text>`;
+  }
+  counts.forEach((n, i) => {
+    const x = L + i * bw + bw * 0.2, w = bw * 0.6, h = n / top * ph, y = T + ph - h;
+    const m = Number(months[i].slice(5));
+    if (n > 0) {
+      const r = Math.min(4, w / 2, h);
+      svg += `<path class="bar${selM && selM !== months[i] ? " dim" : ""}" data-month="${months[i]}" d="M${x},${T + ph} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${T + ph} Z"><title>${months[i].replace("-", "年")}月：${n}件</title></path>`;
+      svg += `<text class="vlabel num" x="${x + w / 2}" y="${y - 4}" text-anchor="middle">${n}</text>`;
+    }
+    svg += `<text class="axis${selM === months[i] ? " selm" : ""}" data-month="${months[i]}" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${m}月</text>`;
+  });
+  $("monthChart").innerHTML = svg + "</svg>";
+}
+
+function renderList() {
+  const q = $("search").value.trim(), st = $("statusFilter").value;
+  const rows = customers.filter(inPeriod)
+    .filter(c => !st || c.status === st)
+    .filter(c => !q || [c.name, c.kana, c.tel, c.address, c.place, kindsOf(c).join(" "), c.staff, c.note, c.source].join(" ").includes(q))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (!rows.length) {
+    $("listBody").innerHTML = `<tr><td colspan="9" class="empty">${customers.length ? "条件に合うお客様がいません。" : "まだ登録がありません。右上の「＋ お客様を登録」から1件目を入れてください。"}</td></tr>`;
+    return;
+  }
+  $("listBody").innerHTML = rows.map(c => `<tr class="click" data-id="${esc(c.id)}" tabindex="0">
+    <td class="num">${esc(c.date)}</td>
+    <td>${c.kana ? `<span class="sub" style="display:block;font-size:.72rem">${esc(c.kana)}</span>` : ""}${esc(c.name)}${c.sample ? '<span class="tag-sample">見本</span>' : ""}</td>
+    <td class="num">${esc(c.tel)}</td>
+    <td>${esc(c.source)}</td><td style="white-space:normal;min-width:10em">${esc(kindsOf(c).join("、"))}</td><td>${esc(c.staff)}</td>
+    <td><span class="pill ${esc(c.status)}">${esc(c.status)}</span></td>
+    <td class="r num">${c.status === "成約" && c.amount ? fmt(Number(c.amount)) + "万円" : ""}</td>
+    <td class="reasons">${esc([(c.reasons || []).join("、"), c.note].filter(Boolean).join(" ／ "))}</td></tr>`).join("");
+}
+
+/* ---------- 入力フォーム ---------- */
+function fillSelect(id, list) { $(id).innerHTML = list.map(v => `<option>${esc(v)}</option>`).join(""); }
+fillSelect("fSource", SOURCES);
+$("kindChecks").innerHTML = KINDS.map((k, i) => `<label><input type="checkbox" id="fKind-${i}" value="${esc(k)}"> ${esc(k)}</label>`).join("");
+const kindsOf = c => Array.isArray(c?.kinds) ? c.kinds : (c?.kind ? [c.kind] : []); fillSelect("fHousing", HOUSING);
+$("statusPick").innerHTML = STATUSES.map(s => `<label><input type="radio" name="fStatus" id="fStatus-${s}" value="${s}"> ${s}</label>`).join("");
+
+function currentStatus() { const r = document.querySelector('input[name="fStatus"]:checked'); return r ? r.value : "商談中"; }
+function syncStatusFields(checked = []) {
+  const s = currentStatus(), closed = s === "成約" || s === "失注";
+  $("closeFields").hidden = !closed; $("reasonBox").hidden = !closed;
+  $("amountField").hidden = s !== "成約";
+  if (!closed) return;
+  const list = s === "成約" ? WIN_REASONS : LOSS_REASONS;
+  $("reasonLegend").textContent = s === "成約" ? "成約の決め手（いくつでも）" : "失注の理由（いくつでも）";
+  $("reasonChecks").innerHTML = list.map((r, i) => `<label><input type="checkbox" id="fReason-${i}" value="${esc(r)}" ${checked.includes(r) ? "checked" : ""}> ${esc(r)}</label>`).join("");
+}
+$("statusPick").addEventListener("change", () => {
+  syncStatusFields();
+  if (!$("fClosed").value && !$("closeFields").hidden) $("fClosed").value = today();
+});
+
+function openForm(c) {
+  editingId = c ? c.id : null;
+  $("dlgTitle").textContent = c ? "お客様の情報を編集" : "お客様を登録";
+  $("fName").value = c?.name || "";
+  $("fKana").value = c?.kana || "";
+  $("fTel").value = c?.tel || "";
+  $("fMail").value = c?.email || "";
+  $("fAddr").value = c?.address || "";
+  $("fFamily").value = c?.family || "";
+  $("fBudget").value = c?.budget ?? "";
+  $("fHousing").value = c?.housing || HOUSING[0];
+  $("fAge").value = c?.houseAge ?? "";
+  $("fPlace").value = c?.place || "";
+  const ks = kindsOf(c);
+  document.querySelectorAll("#kindChecks input").forEach(i => { i.checked = ks.includes(i.value); });
+  $("fDate").value = c?.date || today();
+  $("fSource").value = c?.source || SOURCES[0];
+  $("fStaff").value = c?.staff || "";
+  $("fClosed").value = c?.closedDate || "";
+  $("fAmount").value = c?.amount ?? "";
+  $("fNote").value = c?.note || "";
+  document.querySelector(`input[name="fStatus"][value="${c?.status || "商談中"}"]`).checked = true;
+  syncStatusFields(c?.reasons || []);
+  $("staffList").innerHTML = [...new Set(customers.map(x => x.staff).filter(Boolean))].map(s => `<option value="${esc(s)}">`).join("");
+  $("delBtn").hidden = !c; $("delBtn").textContent = "削除"; $("delBtn").dataset.armed = "";
+  $("formErr").hidden = true;
+  $("saveBtn").disabled = !canWrite || !db;
+  $("dlg").showModal();
+}
+$("addBtn").addEventListener("click", () => openForm(null));
+$("addBtn2").addEventListener("click", () => openForm(null));
+$("cancelBtn").addEventListener("click", () => $("dlg").close());
+$("listBody").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+  openForm(customers.find(c => c.id === tr.dataset.id));
+});
+$("listBody").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const tr = e.target.closest("tr[data-id]"); if (tr) openForm(customers.find(c => c.id === tr.dataset.id));
+});
+
+function showErr(msg) { $("formErr").textContent = msg; $("formErr").hidden = false; }
+function handleWriteError(e) {
+  if (e && e.code === "invalid_argument") { canWrite = false; showErr("この画面からは保存できません。編集できる権限がないようです。"); }
+  else if (e && e.code === "quota_exceeded") showErr("保存できる件数の上限に達しました。古い記録を削除してください。");
+  else showErr("保存できませんでした。通信状況を確認して、もう一度「保存」を押してください。");
+}
+
+$("editForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!db) return;
+  const status = currentStatus(), closed = status === "成約" || status === "失注";
+  const prev = editingId ? customers.find(c => c.id === editingId) : null;
+  const data = {
+    name: $("fName").value.trim(), kana: $("fKana").value.trim(),
+    tel: $("fTel").value.trim(), email: $("fMail").value.trim(), address: $("fAddr").value.trim(),
+    family: $("fFamily").value.trim(), budget: $("fBudget").value !== "" ? Number($("fBudget").value) : null,
+    housing: $("fHousing").value, houseAge: $("fAge").value !== "" ? Number($("fAge").value) : null,
+    place: $("fPlace").value.trim(),
+    date: $("fDate").value, source: $("fSource").value, kinds: [...document.querySelectorAll("#kindChecks input:checked")].map(i => i.value),
+    staff: $("fStaff").value.trim(), status,
+    closedDate: closed ? $("fClosed").value : "",
+    amount: status === "成約" && $("fAmount").value !== "" ? Number($("fAmount").value) : null,
+    reasons: closed ? [...document.querySelectorAll("#reasonChecks input:checked")].map(i => i.value) : [],
+    note: $("fNote").value.trim(),
+    sample: prev?.sample || false,
+    createdAt: prev?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+  if (!data.name || !data.date) { showErr("お名前と受付日は必ず入れてください。"); return; }
+  $("saveBtn").disabled = true;
+  try {
+    const ref = editingId ? db.collection("customers").doc(editingId) : db.collection("customers").doc();
+    await ref.set(data);
+    $("dlg").close(); toast(editingId ? "更新しました" : "登録しました");
+  } catch (err) { handleWriteError(err); }
+  finally { $("saveBtn").disabled = !canWrite; }
+});
+
+$("delBtn").addEventListener("click", async () => {
+  const b = $("delBtn");
+  if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "本当に削除する（もう一度押す）"; return; }
+  try { await db.collection("customers").doc(editingId).delete(); $("dlg").close(); toast("削除しました"); }
+  catch (err) { handleWriteError(err); }
+});
+
+$("clearSample").addEventListener("click", async () => {
+  const b = $("clearSample");
+  if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "見本だけを消す（もう一度押す）"; return; }
+  b.disabled = true;
+  for (const c of customers.filter(x => x.sample)) {
+    try { await db.collection("customers").doc(c.id).delete(); } catch (err) { toast("一部の見本を消せませんでした"); break; }
+  }
+  b.disabled = false; b.dataset.armed = ""; b.textContent = "見本データを消す";
+});
+
+$("period").addEventListener("change", () => { buildMonthOptions(); render(); });
+["month", "statusFilter"].forEach(id => $(id).addEventListener("change", render));
+$("monthChart").addEventListener("click", e => {
+  const b = e.target.closest("[data-month]");
+  if (!b || !$("period").value.startsWith("t")) return;
+  $("month").value = $("month").value === b.dataset.month ? "" : b.dataset.month;
+  render();
+});
+$("search").addEventListener("input", renderList);
+
+/* ---------- 起動 ---------- */
+buildPeriodOptions(); render();
+(async () => {
+  db = window.claude ? await window.claude.use("db") : null;
+  if (!db) {
+    $("statusNote").textContent = "保存先に接続できませんでした。claude.ai にサインインしてこのページを開くと、登録と集計ができます。";
+    $("addBtn").disabled = true; $("addBtn2").disabled = true;
+    return;
+  }
+  const user = await window.claude.use("user");
+  const w = user ? await user.can("data.write") : null;
+  if (w === false) { canWrite = false; $("addBtn").disabled = true; $("addBtn2").disabled = true; }
+  db.collection("customers").onSnapshot(snap => {
+    customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    $("statusNote").hidden = canWrite;
+    if (!canWrite) $("statusNote").textContent = "閲覧のみの権限で開いています。登録や編集はできません。";
+    buildPeriodOptions(); render();
+  }, () => {
+    $("statusNote").hidden = false;
+    $("statusNote").textContent = "データの読み込みが止まりました。ページを開き直してください。";
+  });
+})();
+</script>
+
+</body></html>
